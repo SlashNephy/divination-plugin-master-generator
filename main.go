@@ -16,7 +16,7 @@ import (
 )
 
 type Config struct {
-	HostingDomain         string `env:"HOSTING_DOMAIN" envDefault:"https://xiv.starry.blue"`
+	HostingDomain         string `env:"HOSTING_DOMAIN" envDefault:"xiv.starry.blue"`
 	EnableDownloadCounter bool   `env:"ENABLE_DOWNLOAD_COUNTER" envDefault:"true"`
 }
 
