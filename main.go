@@ -275,7 +275,8 @@ func MergeManifests(stable, testing []*PluginManifest, domain string) ([]*Plugin
 		if stableManifest != nil {
 			manifest.AssemblyVersion = stableManifest.AssemblyVersion
 			manifest.DownloadLinkInstall = fmt.Sprintf("https://%s/plugins/stable/%s/latest.zip", domain, name)
-		} else {
+		}
+		if testingManifest != nil {
 			manifest.TestingAssemblyVersion = testingManifest.AssemblyVersion
 			manifest.DownloadLinkTesting = fmt.Sprintf("https://%s/plugins/testing/%s/latest.zip", domain, name)
 		}
