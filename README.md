@@ -1,0 +1,1 @@
+# divination-plugin-master-generator
