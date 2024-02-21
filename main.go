@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,7 +16,8 @@ import (
 )
 
 type Config struct {
-	HostingDomain string `env:"HOSTING_DOMAIN" envDefault:"https://xiv.starry.blue"`
+	HostingDomain         string `env:"HOSTING_DOMAIN" envDefault:"https://xiv.starry.blue"`
+	EnableDownloadCounter bool   `env:"ENABLE_DOWNLOAD_COUNTER" envDefault:"true"`
 }
 
 func main() {
@@ -33,7 +36,7 @@ func main() {
 		log.Fatalf("failed to extract testing manifests: %v", err)
 	}
 
-	manifests, err := MergeManifests(stable, testing, cfg.HostingDomain)
+	manifests, err := MergeManifests(stable, testing, cfg.HostingDomain, cfg.EnableDownloadCounter)
 	if err != nil {
 		log.Fatalf("failed to merge manifests: %v", err)
 	}
@@ -188,7 +191,35 @@ func DetectLastUpdated(directory string) int64 {
 	return info.ModTime().Unix()
 }
 
-func MergeManifests(stable, testing []*PluginManifest, domain string) ([]*PluginManifest, error) {
+func FetchDownloadStatistics(domain string) (map[string]int64, error) {
+	url := fmt.Sprintf("https://%s/plugins/downloads", domain)
+	request, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	request.Header.Set("User-Agent", "divination-plugin-master-generator/0 (+https://github.com/SlashNephy/divination-plugin-master-generator)")
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	defer response.Body.Close()
+	content, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	statistics := map[string]int64{}
+	if err = json.Unmarshal(content, &statistics); err != nil {
+		return nil, err
+	}
+
+	return statistics, nil
+}
+
+func MergeManifests(stable, testing []*PluginManifest, domain string, enableDownloadCounter bool) ([]*PluginManifest, error) {
 	stableMap := map[string]*PluginManifest{}
 	for _, manifest := range stable {
 		if _, ok := stableMap[manifest.InternalName]; ok {
@@ -217,6 +248,15 @@ func MergeManifests(stable, testing []*PluginManifest, domain string) ([]*Plugin
 		}
 
 		names = append(names, name)
+	}
+
+	var downloads map[string]int64
+	if enableDownloadCounter {
+		var err error
+		downloads, err = FetchDownloadStatistics(domain)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	manifests := []*PluginManifest{}
@@ -272,13 +312,24 @@ func MergeManifests(stable, testing []*PluginManifest, domain string) ([]*Plugin
 		manifest.IsTestingExclusive = stableManifest == nil
 		manifest.LastUpdate = max(DetectLastUpdated(stableDir), DetectLastUpdated(testingDir))
 
+		var filename string
+		if enableDownloadCounter {
+			filename = "download"
+		} else {
+			filename = "latest.zip"
+		}
+
 		if stableManifest != nil {
 			manifest.AssemblyVersion = stableManifest.AssemblyVersion
-			manifest.DownloadLinkInstall = fmt.Sprintf("https://%s/plugins/stable/%s/latest.zip", domain, name)
+			manifest.DownloadLinkInstall = fmt.Sprintf("https://%s/plugins/stable/%s/%s", domain, name, filename)
 		}
 		if testingManifest != nil {
 			manifest.TestingAssemblyVersion = testingManifest.AssemblyVersion
-			manifest.DownloadLinkTesting = fmt.Sprintf("https://%s/plugins/testing/%s/latest.zip", domain, name)
+			manifest.DownloadLinkTesting = fmt.Sprintf("https://%s/plugins/testing/%s/%s", domain, name, filename)
+		}
+
+		if enableDownloadCounter {
+			manifest.DownloadCount, _ = downloads[name]
 		}
 
 		manifests = append(manifests, manifest)
