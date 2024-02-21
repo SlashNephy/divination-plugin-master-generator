@@ -293,7 +293,7 @@ func DumpMaster(manifests []*PluginManifest) error {
 		return manifests[i].InternalName < manifests[j].InternalName
 	})
 
-	content, err := json.Marshal(manifests)
+	content, err := json.MarshalIndent(manifests, "", "  ")
 	if err != nil {
 		return err
 	}
