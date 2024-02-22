@@ -266,11 +266,11 @@ func MergeManifests(stable, testing []*PluginManifest, domain string, enableDown
 		testingDir := filepath.Join("plugins", "testing", name)
 		testingManifest, _ := testingMap[name]
 
-		var manifest *PluginManifest
+		var manifest PluginManifest
 		if testingManifest != nil {
-			manifest = testingManifest
+			manifest = *testingManifest
 		} else {
-			manifest = stableManifest
+			manifest = *stableManifest
 		}
 
 		// Changelog
@@ -332,7 +332,7 @@ func MergeManifests(stable, testing []*PluginManifest, domain string, enableDown
 			manifest.DownloadCount, _ = downloads[name]
 		}
 
-		manifests = append(manifests, manifest)
+		manifests = append(manifests, &manifest)
 	}
 
 	return manifests, nil
