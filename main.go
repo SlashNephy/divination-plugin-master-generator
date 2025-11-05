@@ -64,7 +64,7 @@ type PluginManifest struct {
 	RepoURL                string   `json:"RepoUrl,omitempty"`
 	ApplicableVersion      string   `json:"ApplicableVersion,omitempty"`
 	DalamudApiLevel        int      `json:"DalamudApiLevel"`
-	TestingDalamudApiLevel int      `json:"TestingDalamudApiLevel"`
+	TestingDalamudApiLevel int      `json:"TestingDalamudApiLevel,omitempty"`
 	DownloadCount          int64    `json:"DownloadCount,omitempty"`
 	LastUpdate             int64    `json:"LastUpdate,omitempty"`
 	DownloadLinkInstall    string   `json:"DownloadLinkInstall,omitempty"`
